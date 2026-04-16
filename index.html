@@ -134,7 +134,7 @@
           </select>
         </label>
       </div>
-      <div id="bookList" class="book-grid" aria-live="polite"></div>
+      <div id="bookList" class="book-grid" aria-live="polite" aria-atomic="false"></div>
     </section>
 
     <section class="virtual-library" aria-label="Virtual library shelf">
@@ -226,7 +226,11 @@
       const textStartX = 50;
       const textStartY = 760;
       const lineStepY = -24;
-      const escapePdfText = text => text.replace(/\\/g, '\\\\').replace(/\(/g, '\\(').replace(/\)/g, '\\)');
+      const escapePdfText = text => text
+        .replace(/[^\x20-\x7E]/g, ' ')
+        .replace(/\\/g, '\\\\')
+        .replace(/\(/g, '\\(')
+        .replace(/\)/g, '\\)');
       const stream = `BT /F1 ${pdfFontSize} Tf ${textStartX} ${textStartY} Td\n${lines.map((line, index) => `${index ? `0 ${lineStepY} Td` : ''} (${escapePdfText(line)}) Tj`).join('\n')}\nET`;
       const encoder = new TextEncoder();
       const objects = [
@@ -283,7 +287,7 @@
           <p><strong>Author:</strong> ${escapeHtml(book.author)}</p>
           <p><strong>Genre:</strong> ${escapeHtml(book.genre)}</p>
           <p><strong>Season:</strong> ${escapeHtml(book.season)}</p>
-          <button class="download-btn" data-id="${book.id}">Download Book</button>
+          <button class="download-btn" data-id="${book.id}" aria-label="Download ${escapeHtml(book.title)}">Download Book</button>
         </article>
       `).join('');
 
