@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Online Library</title>
+  <style>
+    :root {
+      color-scheme: light;
+      font-family: Arial, sans-serif;
+      --bg: #f5f3ef;
+      --card: #ffffff;
+      --accent: #4b5d67;
+      --wood: #8a5a3b;
+      --wood-dark: #6e4429;
+    }
+
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: #1f2933;
+    }
+
+    .container {
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 1.5rem;
+    }
+
+    h1, h2 {
+      margin-bottom: 0.5rem;
+    }
+
+    .controls {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+      gap: 0.75rem;
+      margin: 1rem 0 1.5rem;
+    }
+
+    select {
+      width: 100%;
+      padding: 0.55rem;
+      border-radius: 8px;
+      border: 1px solid #ccd2d8;
+      background: #fff;
+    }
+
+    .book-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 1rem;
+      margin-bottom: 2rem;
+    }
+
+    .book-card {
+      background: var(--card);
+      border-radius: 12px;
+      padding: 1rem;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+      border: 1px solid #e5e7eb;
+    }
+
+    .book-card p {
+      margin: 0.3rem 0;
+      font-size: 0.92rem;
+    }
+
+    .download-btn {
+      margin-top: 0.5rem;
+      border: 0;
+      border-radius: 8px;
+      background: var(--accent);
+      color: white;
+      padding: 0.5rem 0.8rem;
+      cursor: pointer;
+    }
+
+    .virtual-library {
+      background: #efe4d6;
+      border-radius: 14px;
+      padding: 1rem;
+      border: 2px solid var(--wood-dark);
+    }
+
+    .shelf {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 0.65rem;
+      margin-top: 0.75rem;
+    }
+
+    .compartment {
+      min-height: 88px;
+      background: linear-gradient(var(--wood), var(--wood-dark));
+      border-radius: 8px;
+      padding: 0.55rem;
+      color: #fff7ed;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      border: 1px solid #5e3d26;
+    }
+
+    .empty {
+      color: #5f4b3a;
+      font-style: italic;
+      margin: 0.5rem 0;
+    }
+  </style>
+</head>
+<body>
+  <main class="container">
+    <h1>Online Library</h1>
+    <p>Browse books by genre, author, and season, then download them into your personal virtual shelf.</p>
+
+    <section aria-label="Filters and sorting">
+      <div class="controls">
+        <label>Genre
+          <select id="genreFilter"></select>
+        </label>
+        <label>Author
+          <select id="authorFilter"></select>
+        </label>
+        <label>Season
+          <select id="seasonFilter"></select>
+        </label>
+        <label>Sort by
+          <select id="sortBy">
+            <option value="title">Title</option>
+            <option value="genre">Genre</option>
+            <option value="author">Author</option>
+            <option value="season">Season</option>
+          </select>
+        </label>
+      </div>
+      <div id="bookList" class="book-grid" aria-live="polite"></div>
+    </section>
+
+    <section class="virtual-library" aria-label="Virtual library shelf">
+      <h2>Your Virtual Library</h2>
+      <p id="emptyShelf" class="empty">No downloaded books yet.</p>
+      <div id="virtualShelf" class="shelf"></div>
+    </section>
+  </main>
+
+  <script>
+    const books = [
+      { id: 1, title: 'Long Walk to Freedom', author: 'Nelson Mandela', genre: 'Biography', season: 'Summer' },
+      { id: 2, title: 'Wings of Fire', author: 'A.P.J. Abdul Kalam', genre: 'Autobiography', season: 'Spring' },
+      { id: 3, title: 'Pride and Prejudice', author: 'Jane Austen', genre: 'Novel', season: 'Winter' },
+      { id: 4, title: 'Atomic Habits', author: 'James Clear', genre: 'Self Help', season: 'Autumn' },
+      { id: 5, title: 'The Alchemist', author: 'Paulo Coelho', genre: 'Novel', season: 'Monsoon' },
+      { id: 6, title: 'Steve Jobs', author: 'Walter Isaacson', genre: 'Biography', season: 'Winter' }
+    ];
+
+    const filters = {
+      genreFilter: document.getElementById('genreFilter'),
+      authorFilter: document.getElementById('authorFilter'),
+      seasonFilter: document.getElementById('seasonFilter'),
+      sortBy: document.getElementById('sortBy')
+    };
+
+    const bookList = document.getElementById('bookList');
+    const shelf = document.getElementById('virtualShelf');
+    const emptyShelf = document.getElementById('emptyShelf');
+
+    const downloadedKey = 'online-library-downloaded-books';
+
+    function loadDownloadedBooks() {
+      try {
+        return JSON.parse(localStorage.getItem(downloadedKey)) || [];
+      } catch {
+        return [];
+      }
+    }
+
+    function saveDownloadedBooks(ids) {
+      localStorage.setItem(downloadedKey, JSON.stringify(ids));
+    }
+
+    function toOptions(values) {
+      return ['All', ...new Set(values)].map(value => `<option value="${value}">${value}</option>`).join('');
+    }
+
+    function setupFilters() {
+      filters.genreFilter.innerHTML = toOptions(books.map(book => book.genre));
+      filters.authorFilter.innerHTML = toOptions(books.map(book => book.author));
+      filters.seasonFilter.innerHTML = toOptions(books.map(book => book.season));
+
+      Object.values(filters).forEach(el => el.addEventListener('change', renderBooks));
+    }
+
+    function triggerDownload(book) {
+      const payload = `Book: ${book.title}\nAuthor: ${book.author}\nGenre: ${book.genre}\nSeason: ${book.season}`;
+      const blob = new Blob([payload], { type: 'application/pdf' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `${book.title.replace(/\s+/g, '_')}.pdf`;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      URL.revokeObjectURL(url);
+    }
+
+    function addToVirtualLibrary(book) {
+      const downloadedIds = new Set(loadDownloadedBooks());
+      downloadedIds.add(book.id);
+      saveDownloadedBooks([...downloadedIds]);
+      renderVirtualShelf();
+    }
+
+    function renderBooks() {
+      const genre = filters.genreFilter.value;
+      const author = filters.authorFilter.value;
+      const season = filters.seasonFilter.value;
+      const sortField = filters.sortBy.value;
+
+      const filtered = books
+        .filter(book => (genre === 'All' || book.genre === genre))
+        .filter(book => (author === 'All' || book.author === author))
+        .filter(book => (season === 'All' || book.season === season))
+        .sort((a, b) => a[sortField].localeCompare(b[sortField]));
+
+      bookList.innerHTML = filtered.map(book => `
+        <article class="book-card">
+          <h3>${book.title}</h3>
+          <p><strong>Author:</strong> ${book.author}</p>
+          <p><strong>Genre:</strong> ${book.genre}</p>
+          <p><strong>Season:</strong> ${book.season}</p>
+          <button class="download-btn" data-id="${book.id}">Download Book</button>
+        </article>
+      `).join('');
+
+      document.querySelectorAll('.download-btn').forEach(button => {
+        button.addEventListener('click', () => {
+          const book = books.find(item => item.id === Number(button.dataset.id));
+          triggerDownload(book);
+          addToVirtualLibrary(book);
+        });
+      });
+    }
+
+    function renderVirtualShelf() {
+      const downloadedIds = loadDownloadedBooks();
+      const downloadedBooks = books.filter(book => downloadedIds.includes(book.id));
+      emptyShelf.style.display = downloadedBooks.length ? 'none' : 'block';
+      shelf.innerHTML = downloadedBooks.map(book => `
+        <article class="compartment">
+          <strong>${book.title}</strong>
+          <small>${book.author}</small>
+        </article>
+      `).join('');
+    }
+
+    setupFilters();
+    renderBooks();
+    renderVirtualShelf();
+  </script>
+</body>
+</html>
