@@ -179,8 +179,19 @@
       localStorage.setItem(downloadedKey, JSON.stringify(ids));
     }
 
+    function escapeHtml(value) {
+      return String(value)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+    }
+
     function toOptions(values) {
-      return ['All', ...new Set(values)].map(value => `<option value="${value}">${value}</option>`).join('');
+      return ['All', ...new Set(values)]
+        .map(value => `<option value="${escapeHtml(value)}">${escapeHtml(value)}</option>`)
+        .join('');
     }
 
     function setupFilters() {
@@ -211,8 +222,12 @@
         `Season: ${book.season}`
       ];
 
+      const pdfFontSize = 16;
+      const textStartX = 50;
+      const textStartY = 760;
+      const lineStepY = -24;
       const escapePdfText = text => text.replace(/\\/g, '\\\\').replace(/\(/g, '\\(').replace(/\)/g, '\\)');
-      const stream = `BT /F1 16 Tf 50 760 Td\n${lines.map((line, index) => `${index ? '0 -24 Td' : ''} (${escapePdfText(line)}) Tj`).join('\n')}\nET`;
+      const stream = `BT /F1 ${pdfFontSize} Tf ${textStartX} ${textStartY} Td\n${lines.map((line, index) => `${index ? `0 ${lineStepY} Td` : ''} (${escapePdfText(line)}) Tj`).join('\n')}\nET`;
       const encoder = new TextEncoder();
       const objects = [
         '<< /Type /Catalog /Pages 2 0 R >>',
@@ -256,14 +271,15 @@
         .filter(book => (genre === 'All' || book.genre === genre))
         .filter(book => (author === 'All' || book.author === author))
         .filter(book => (season === 'All' || book.season === season))
-        .sort((a, b) => String(a[sortField] ?? '').localeCompare(String(b[sortField] ?? '')));
+        .map(book => ({ ...book, sortValue: String(book[sortField] ?? '') }))
+        .sort((a, b) => a.sortValue.localeCompare(b.sortValue));
 
       bookList.innerHTML = filtered.map(book => `
         <article class="book-card">
-          <h3>${book.title}</h3>
-          <p><strong>Author:</strong> ${book.author}</p>
-          <p><strong>Genre:</strong> ${book.genre}</p>
-          <p><strong>Season:</strong> ${book.season}</p>
+          <h3>${escapeHtml(book.title)}</h3>
+          <p><strong>Author:</strong> ${escapeHtml(book.author)}</p>
+          <p><strong>Genre:</strong> ${escapeHtml(book.genre)}</p>
+          <p><strong>Season:</strong> ${escapeHtml(book.season)}</p>
           <button class="download-btn" data-id="${book.id}">Download Book</button>
         </article>
       `).join('');
@@ -283,8 +299,8 @@
       emptyShelf.style.display = downloadedBooks.length ? 'none' : 'block';
       shelf.innerHTML = downloadedBooks.map(book => `
         <article class="compartment">
-          <strong>${book.title}</strong>
-          <small>${book.author}</small>
+          <strong>${escapeHtml(book.title)}</strong>
+          <small>${escapeHtml(book.author)}</small>
         </article>
       `).join('');
     }
