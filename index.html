@@ -139,7 +139,7 @@
 
     <section class="virtual-library" aria-label="Virtual library shelf">
       <h2>Your Virtual Library</h2>
-      <p id="emptyShelf" class="empty">No downloaded books yet.</p>
+      <p id="emptyShelf" class="empty" aria-live="polite">No downloaded books yet.</p>
       <div id="virtualShelf" class="shelf"></div>
     </section>
   </main>
@@ -207,7 +207,7 @@
       const url = URL.createObjectURL(blob);
       const link = document.createElement('a');
       link.href = url;
-      link.download = `${book.title.replace(/\s+/g, '_')}.pdf`;
+      link.download = `${book.title.replace(/[\\/:*?"<>|\s]+/g, '_')}.pdf`;
       document.body.appendChild(link);
       link.click();
       link.remove();
@@ -231,7 +231,10 @@
         .replace(/\\/g, '\\\\')
         .replace(/\(/g, '\\(')
         .replace(/\)/g, '\\)');
-      const stream = `BT /F1 ${pdfFontSize} Tf ${textStartX} ${textStartY} Td\n${lines.map((line, index) => `${index ? `0 ${lineStepY} Td` : ''} (${escapePdfText(line)}) Tj`).join('\n')}\nET`;
+      const lineOperators = lines
+        .map((line, index) => `${index ? `0 ${lineStepY} Td` : ''} (${escapePdfText(line)}) Tj`)
+        .join('\n');
+      const stream = `BT /F1 ${pdfFontSize} Tf ${textStartX} ${textStartY} Td\n${lineOperators}\nET`;
       const encoder = new TextEncoder();
       const objects = [
         '<< /Type /Catalog /Pages 2 0 R >>',
@@ -294,6 +297,9 @@
       document.querySelectorAll('.download-btn').forEach(button => {
         button.addEventListener('click', () => {
           const book = books.find(item => item.id === Number(button.dataset.id));
+          if (!book) {
+            return;
+          }
           triggerDownload(book);
           addToVirtualLibrary(book);
         });
