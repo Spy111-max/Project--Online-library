@@ -9,4 +9,4 @@ A lightweight online library web app for youngsters to browse and download books
 - Every downloaded book is saved in a **virtual library shelf** (stored in browser local storage).
 
 ## Run
-Open `/home/runner/work/Project--Online-library/Project--Online-library/index.html` in any modern browser.
+Open `index.html` in any modern browser.

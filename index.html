@@ -192,8 +192,7 @@
     }
 
     function triggerDownload(book) {
-      const payload = `Book: ${book.title}\nAuthor: ${book.author}\nGenre: ${book.genre}\nSeason: ${book.season}`;
-      const blob = new Blob([payload], { type: 'application/pdf' });
+      const blob = createBookPdf(book);
       const url = URL.createObjectURL(blob);
       const link = document.createElement('a');
       link.href = url;
@@ -202,6 +201,42 @@
       link.click();
       link.remove();
       URL.revokeObjectURL(url);
+    }
+
+    function createBookPdf(book) {
+      const lines = [
+        `Book: ${book.title}`,
+        `Author: ${book.author}`,
+        `Genre: ${book.genre}`,
+        `Season: ${book.season}`
+      ];
+
+      const escapePdfText = text => text.replace(/\\/g, '\\\\').replace(/\(/g, '\\(').replace(/\)/g, '\\)');
+      const stream = `BT /F1 16 Tf 50 760 Td\n${lines.map((line, index) => `${index ? '0 -24 Td' : ''} (${escapePdfText(line)}) Tj`).join('\n')}\nET`;
+      const encoder = new TextEncoder();
+      const objects = [
+        '<< /Type /Catalog /Pages 2 0 R >>',
+        '<< /Type /Pages /Kids [3 0 R] /Count 1 >>',
+        '<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 5 0 R >> >> /Contents 4 0 R >>',
+        `<< /Length ${encoder.encode(stream).length} >>\nstream\n${stream}\nendstream`,
+        '<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>'
+      ];
+
+      let pdf = '%PDF-1.4\n';
+      const offsets = [];
+      objects.forEach((body, index) => {
+        offsets.push(encoder.encode(pdf).length);
+        pdf += `${index + 1} 0 obj\n${body}\nendobj\n`;
+      });
+
+      const xrefStart = encoder.encode(pdf).length;
+      pdf += `xref\n0 ${objects.length + 1}\n0000000000 65535 f \n`;
+      offsets.forEach(offset => {
+        pdf += `${offset.toString().padStart(10, '0')} 00000 n \n`;
+      });
+      pdf += `trailer\n<< /Size ${objects.length + 1} /Root 1 0 R >>\nstartxref\n${xrefStart}\n%%EOF`;
+
+      return new Blob([pdf], { type: 'application/pdf' });
     }
 
     function addToVirtualLibrary(book) {
@@ -221,7 +256,7 @@
         .filter(book => (genre === 'All' || book.genre === genre))
         .filter(book => (author === 'All' || book.author === author))
         .filter(book => (season === 'All' || book.season === season))
-        .sort((a, b) => a[sortField].localeCompare(b[sortField]));
+        .sort((a, b) => String(a[sortField] ?? '').localeCompare(String(b[sortField] ?? '')));
 
       bookList.innerHTML = filtered.map(book => `
         <article class="book-card">
