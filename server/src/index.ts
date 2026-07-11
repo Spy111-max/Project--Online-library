@@ -20,10 +20,38 @@ const PORT = Number(process.env.PORT ?? 3001);
 
 // ── Middleware ────────────────────────────────────────────────
 
-// CORS — only allow requests from the configured frontend URL
+// CORS — allow requests from local dev, configured FRONTEND_URL, and Vercel preview/production urls
+const allowedOrigins = [
+  'http://localhost:5174',
+  'http://127.0.0.1:5174',
+  'http://localhost:3000',
+];
+if (process.env.FRONTEND_URL) {
+  process.env.FRONTEND_URL.split(',').forEach((url) => allowedOrigins.push(url.trim()));
+}
+
 app.use(
   cors({
-    origin: process.env.FRONTEND_URL ?? 'http://localhost:5174',
+    origin: (origin, callback) => {
+      if (!origin) {
+        callback(null, true);
+        return;
+      }
+      const cleanOrigin = origin.replace(/\/$/, '');
+      const isAllowed =
+        allowedOrigins.some((allowed) => {
+          const cleanAllowed = allowed.replace(/\/$/, '');
+          return cleanOrigin.toLowerCase() === cleanAllowed.toLowerCase();
+        }) ||
+        cleanOrigin.endsWith('.vercel.app') ||
+        cleanOrigin.includes('vercel.app');
+
+      if (isAllowed) {
+        callback(null, true);
+      } else {
+        callback(new Error('Not allowed by CORS'));
+      }
+    },
     methods: ['GET', 'POST'],
     allowedHeaders: ['Content-Type', 'Authorization'],
   }),
