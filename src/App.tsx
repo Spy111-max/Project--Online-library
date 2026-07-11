@@ -33,7 +33,17 @@ pdfjs.GlobalWorkerOptions.workerSrc = new URL(
 
 function App() {
   // ── Auth State ──
-  const [authUser, setAuthUser] = useState<AuthUser | null>(null);
+  const [authUser, setAuthUser] = useState<AuthUser | null>(() => {
+    const saved = sessionStorage.getItem('cozy_library_user');
+    if (saved) {
+      try {
+        return JSON.parse(saved);
+      } catch {
+        return null;
+      }
+    }
+    return null;
+  });
 
   // Profile Customization States
   const [profilePic, setProfilePic] = useState('🐻');
@@ -61,10 +71,13 @@ function App() {
   const [activeHighlights, setActiveHighlights] = useState<Highlight[]>([]);
   const [activeStickers, setActiveStickers] = useState<PageSticker[]>([]);
 
-  // Load profile picture when user changes
+  // Load profile picture and persist session when user changes
   useEffect(() => {
     if (authUser) {
       setProfilePic(localStorage.getItem(`profile_pic_${authUser.email}`) || '🐻');
+      sessionStorage.setItem('cozy_library_user', JSON.stringify(authUser));
+    } else {
+      sessionStorage.removeItem('cozy_library_user');
     }
   }, [authUser]);
 
