@@ -20,7 +20,7 @@ import { Cupboard } from './components/Cupboard';
 import { DecorationDrawer } from './components/DecorationDrawer';
 import { Reader } from './components/Reader';
 import { AuthPage, type AuthUser } from './components/AuthPage';
-import { Library, LogOut, Upload, X } from 'lucide-react';
+import { LogOut, Upload, X } from 'lucide-react';
 import * as pdfjs from 'pdfjs-dist';
 
 // Configure the pdfjs worker in Vite
@@ -533,7 +533,6 @@ function App() {
 
           {/* DIY Studio Configuration Drawer Trigger */}
           <DecorationDrawer
-            onAddBook={handleAddBook}
             onAddDecoration={handleAddDecoration}
             currentTheme={settings.cupboardTheme}
             onChangeTheme={handleChangeTheme}
