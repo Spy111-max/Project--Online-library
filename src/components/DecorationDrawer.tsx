@@ -1,6 +1,18 @@
 import React, { useState, useRef } from 'react';
 import { Upload, Sparkles, X, Plus } from 'lucide-react';
 import * as pdfjs from 'pdfjs-dist';
+import {
+  SucculentIcon,
+  HangingIvyIcon,
+  TulipsIcon,
+  HeartSticker,
+  StarSticker,
+  CloudSticker,
+  GlitterSticker,
+  KeychainIcon,
+  FairyLightsIcon,
+  CandleIcon,
+} from './AestheticAssets';
 
 // Configure the pdfjs worker in Vite
 pdfjs.GlobalWorkerOptions.workerSrc = new URL(
@@ -33,20 +45,20 @@ export const DecorationDrawer: React.FC<DecorationDrawerProps> = ({
   // DIY items list
   const decorItems = {
     plants: [
-      { id: 'succulent', label: 'Mini Succulent', type: 'plant' as const },
-      { id: 'ivy', label: 'Hanging Ivy', type: 'plant' as const },
-      { id: 'tulip', label: 'Tulip Vase', type: 'plant' as const },
+      { id: 'succulent', label: 'Mini Succulent', type: 'plant' as const, Icon: SucculentIcon },
+      { id: 'ivy', label: 'Hanging Ivy', type: 'plant' as const, Icon: HangingIvyIcon },
+      { id: 'tulip', label: 'Tulip Vase', type: 'plant' as const, Icon: TulipsIcon },
     ],
     stickers: [
-      { id: 'heart', label: 'Sweet Heart', type: 'sticker' as const },
-      { id: 'star', label: 'Sleepy Star', type: 'sticker' as const },
-      { id: 'cloud', label: 'Dreamy Cloud', type: 'sticker' as const },
-      { id: 'glitter', label: 'Fairy Glitter', type: 'sticker' as const },
+      { id: 'heart', label: 'Sweet Heart', type: 'sticker' as const, Icon: HeartSticker },
+      { id: 'star', label: 'Sleepy Star', type: 'sticker' as const, Icon: StarSticker },
+      { id: 'cloud', label: 'Dreamy Cloud', type: 'sticker' as const, Icon: CloudSticker },
+      { id: 'glitter', label: 'Fairy Glitter', type: 'sticker' as const, Icon: GlitterSticker },
     ],
     trinkets: [
-      { id: 'candle', label: 'Mini Candle', type: 'trinket' as const },
-      { id: 'keychain', label: 'Brass Keychain', type: 'trinket' as const },
-      { id: 'fairy_lights', label: 'Fairy Lights', type: 'trinket' as const },
+      { id: 'candle', label: 'Mini Candle', type: 'trinket' as const, Icon: CandleIcon },
+      { id: 'keychain', label: 'Brass Keychain', type: 'trinket' as const, Icon: KeychainIcon },
+      { id: 'fairy_lights', label: 'Fairy Lights', type: 'trinket' as const, Icon: FairyLightsIcon },
     ],
   };
 
@@ -233,15 +245,20 @@ export const DecorationDrawer: React.FC<DecorationDrawerProps> = ({
               {/* Plants */}
               <div>
                 <h5 className="text-xs font-bold text-[#8c7a6b] uppercase tracking-wider mb-3">Plants</h5>
-                <div className="grid grid-cols-2 gap-2">
+                <div className="grid grid-cols-2 gap-3">
                   {decorItems.plants.map((item) => (
                     <button
                       key={item.id}
                       onClick={() => onAddDecoration(item.id, item.type)}
-                      className="flex items-center justify-between p-2.5 rounded-xl border border-black/5 bg-white/40 hover:bg-rose-50/50 hover:border-rose-200 transition-all text-xs font-bold text-[#6b6375] text-left cursor-pointer group"
+                      className="flex flex-col items-center justify-center p-3 rounded-2xl border border-black/5 bg-white/40 hover:bg-rose-50/50 hover:border-rose-200 transition-all cursor-pointer group text-center"
+                      title={`Click to add ${item.label}`}
                     >
-                      <span>{item.label}</span>
-                      <Plus className="w-4 h-4 text-rose-300 group-hover:scale-125 transition-transform" />
+                      <div className="h-16 flex items-center justify-center transition-transform duration-300 group-hover:scale-110 mb-1">
+                        <item.Icon />
+                      </div>
+                      <span className="text-[10px] font-bold text-[#6b6375] group-hover:text-rose-500 transition-colors leading-tight">
+                        {item.label}
+                      </span>
                     </button>
                   ))}
                 </div>
@@ -250,15 +267,20 @@ export const DecorationDrawer: React.FC<DecorationDrawerProps> = ({
               {/* Stickers */}
               <div>
                 <h5 className="text-xs font-bold text-[#8c7a6b] uppercase tracking-wider mb-3">Stickers</h5>
-                <div className="grid grid-cols-2 gap-2">
+                <div className="grid grid-cols-2 gap-3">
                   {decorItems.stickers.map((item) => (
                     <button
                       key={item.id}
                       onClick={() => onAddDecoration(item.id, item.type)}
-                      className="flex items-center justify-between p-2.5 rounded-xl border border-black/5 bg-white/40 hover:bg-rose-50/50 hover:border-rose-200 transition-all text-xs font-bold text-[#6b6375] text-left cursor-pointer group"
+                      className="flex flex-col items-center justify-center p-3 rounded-2xl border border-black/5 bg-white/40 hover:bg-rose-50/50 hover:border-rose-200 transition-all cursor-pointer group text-center"
+                      title={`Click to add ${item.label}`}
                     >
-                      <span>{item.label}</span>
-                      <Plus className="w-4 h-4 text-rose-300 group-hover:scale-125 transition-transform" />
+                      <div className="h-16 flex items-center justify-center transition-transform duration-300 group-hover:scale-110 mb-1">
+                        <item.Icon />
+                      </div>
+                      <span className="text-[10px] font-bold text-[#6b6375] group-hover:text-rose-500 transition-colors leading-tight">
+                        {item.label}
+                      </span>
                     </button>
                   ))}
                 </div>
@@ -267,15 +289,20 @@ export const DecorationDrawer: React.FC<DecorationDrawerProps> = ({
               {/* Trinkets */}
               <div>
                 <h5 className="text-xs font-bold text-[#8c7a6b] uppercase tracking-wider mb-3">Cute Trinkets</h5>
-                <div className="grid grid-cols-2 gap-2">
+                <div className="grid grid-cols-2 gap-3">
                   {decorItems.trinkets.map((item) => (
                     <button
                       key={item.id}
                       onClick={() => onAddDecoration(item.id, item.type)}
-                      className="flex items-center justify-between p-2.5 rounded-xl border border-black/5 bg-white/40 hover:bg-rose-50/50 hover:border-rose-200 transition-all text-xs font-bold text-[#6b6375] text-left cursor-pointer group"
+                      className="flex flex-col items-center justify-center p-3 rounded-2xl border border-black/5 bg-white/40 hover:bg-rose-50/50 hover:border-rose-200 transition-all cursor-pointer group text-center"
+                      title={`Click to add ${item.label}`}
                     >
-                      <span>{item.label}</span>
-                      <Plus className="w-4 h-4 text-rose-300 group-hover:scale-125 transition-transform" />
+                      <div className="h-16 flex items-center justify-center transition-transform duration-300 group-hover:scale-110 mb-1">
+                        <item.Icon />
+                      </div>
+                      <span className="text-[10px] font-bold text-[#6b6375] group-hover:text-rose-500 transition-colors leading-tight">
+                        {item.label}
+                      </span>
                     </button>
                   ))}
                 </div>
