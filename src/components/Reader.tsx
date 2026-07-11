@@ -420,7 +420,7 @@ const ReaderPage: React.FC<ReaderPageProps> = ({
                   top: `${((item.y - item.height) / viewportSize.height) * 100}%`,
                   width: `${(item.width / viewportSize.width) * 100}%`,
                   height: `${(item.height / viewportSize.height) * 100}%`,
-                  fontSize: `${item.fontSize}px`,
+                  fontSize: `${item.height}px`,
                   transformOrigin: 'left top',
                 }}
               >
