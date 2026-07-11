@@ -55,11 +55,11 @@ function App() {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [isLoading, setIsLoading] = useState(true);
-  
+
   // Library States
   const [books, setBooks] = useState<Book[]>([]);
   const [decorations, setDecorations] = useState<Decoration[]>([]);
-  
+
   // Theme States
   const [settings, setSettings] = useState<Settings>({
     cupboardTheme: 'cottagecore',
@@ -154,7 +154,7 @@ function App() {
 
       const cleanTitle = file.name.replace(/\.pdf$/i, '');
       await handleAddBook(cleanTitle, arrayBuffer, totalPages);
-      
+
       if (fileInputRef.current) {
         fileInputRef.current.value = '';
       }
@@ -422,11 +422,11 @@ function App() {
 
   return (
     <div className={`min-h-screen w-full transition-colors duration-500 flex flex-col items-center overflow-x-hidden ${getBgClass()}`}>
-      
+
       {/* 1. ROOM SHELVES VIEW */}
       {!activeBookId ? (
         <div className="w-full flex flex-col items-center relative min-h-screen py-16">
-          
+
           {/* Top Decorative Floating Clouds (adds cozy feel) */}
           <div className="absolute top-10 left-[10%] opacity-40 animate-float pointer-events-none" style={{ animationDelay: '0s' }}>
             <svg viewBox="0 0 100 60" width="80" height="50" fill="#FFF"><path d="M20 35 C15 35, 10 32, 10 27 C10 22, 15 20, 20 20 C22 15, 35 10, 42 16 C48 12, 62 15, 65 22 C72 20, 80 25, 80 32 C80 37, 72 40, 65 40 L20 40 Z" /></svg>
@@ -569,9 +569,8 @@ function App() {
                   onDragOver={handleDragOver}
                   onDrop={handleDrop}
                   onClick={() => fileInputRef.current?.click()}
-                  className={`border-2 border-dashed border-[#d1c9e9] hover:border-[#aba0d3] bg-[#fdf6f0]/40 rounded-2xl p-6 flex flex-col items-center justify-center gap-3 text-center cursor-pointer transition-all duration-300 ${
-                    isUploading ? 'opacity-55 pointer-events-none' : ''
-                  }`}
+                  className={`border-2 border-dashed border-[#d1c9e9] hover:border-[#aba0d3] bg-[#fdf6f0]/40 rounded-2xl p-6 flex flex-col items-center justify-center gap-3 text-center cursor-pointer transition-all duration-300 ${isUploading ? 'opacity-55 pointer-events-none' : ''
+                    }`}
                 >
                   <input
                     type="file"

@@ -42,8 +42,9 @@ async function post<T>(endpoint: string, body: Record<string, unknown>): Promise
   const json = (await res.json()) as ApiEnvelope<T>;
 
   if (!json.success) {
-    throw Object.assign(new Error(json.error ?? 'Request failed'), {
-      code: (json as ApiError).code,
+    const errorData = json as ApiError;
+    throw Object.assign(new Error(errorData.error ?? 'Request failed'), {
+      code: errorData.code,
     });
   }
 
