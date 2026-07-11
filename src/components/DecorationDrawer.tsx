@@ -316,24 +316,56 @@ export const DecorationDrawer: React.FC<DecorationDrawerProps> = ({
               {/* Cupboard Style */}
               <div>
                 <h5 className="text-xs font-bold text-[#8c7a6b] uppercase tracking-wider mb-3">Cabinet Design</h5>
-                <div className="flex flex-col gap-2">
+                <div className="flex flex-col gap-2.5">
                   {[
-                    { id: 'cottagecore', label: 'Cozy Cottagecore', desc: 'Warm oak wood, rustic charm' },
-                    { id: 'pastel', label: 'Minimalist Pastel', desc: 'Matte white cupboard shelves' },
-                    { id: 'academic', label: 'Dark Academic', desc: 'Sophisticated vintage dark mahogany' },
-                    { id: 'scandinavian', label: 'Scandinavian Birch', desc: 'Light birch wood wood & airy borders' },
+                    {
+                      id: 'cottagecore',
+                      label: 'Cozy Cottagecore',
+                      desc: 'Warm oak wood, rustic charm',
+                      previewClass: 'border-[#8b5a2b] wood-cottagecore',
+                      shelfClass: 'wood-cottagecore-shelf',
+                    },
+                    {
+                      id: 'pastel',
+                      label: 'Minimalist Pastel',
+                      desc: 'Matte white cupboard shelves',
+                      previewClass: 'border-white/80 bg-gradient-to-b from-[#FFF5F5] to-[#F5F5FF] shadow-inner',
+                      shelfClass: 'wood-pastel-shelf',
+                    },
+                    {
+                      id: 'academic',
+                      label: 'Dark Academic',
+                      desc: 'Sophisticated vintage dark mahogany',
+                      previewClass: 'border-[#1f1209] wood-academic',
+                      shelfClass: 'wood-academic-shelf',
+                    },
+                    {
+                      id: 'scandinavian',
+                      label: 'Scandinavian Birch',
+                      desc: 'Light birch wood & airy borders',
+                      previewClass: 'border-[#dfd0be] wood-scandi',
+                      shelfClass: 'wood-scandi-shelf',
+                    },
                   ].map((t) => (
                     <button
                       key={t.id}
                       onClick={() => onChangeTheme(t.id as any)}
-                      className={`p-3 rounded-xl border text-left cursor-pointer transition-all flex flex-col ${
+                      className={`p-2.5 rounded-xl border text-left cursor-pointer transition-all flex items-center gap-3.5 ${
                         currentTheme === t.id
                           ? 'border-rose-300 bg-rose-50/40 shadow-sm'
                           : 'border-black/5 bg-white/40 hover:bg-white/60'
                       }`}
                     >
-                      <span className="text-xs font-bold text-[#6b6375]">{t.label}</span>
-                      <span className="text-[10px] text-[#a29ca8] mt-0.5">{t.desc}</span>
+                      {/* Mini Bookshelf Preview */}
+                      <div className={`w-12 h-14 flex-shrink-0 border-[3.5px] rounded-lg relative flex flex-col justify-around p-1 shadow-sm ${t.previewClass}`}>
+                        <div className={`h-[3.5px] w-full rounded-[1px] ${t.shelfClass}`}></div>
+                        <div className={`h-[3.5px] w-full rounded-[1px] ${t.shelfClass}`}></div>
+                      </div>
+
+                      <div className="flex flex-col">
+                        <span className="text-xs font-bold text-[#6b6375]">{t.label}</span>
+                        <span className="text-[10px] text-[#a29ca8] mt-0.5">{t.desc}</span>
+                      </div>
                     </button>
                   ))}
                 </div>
