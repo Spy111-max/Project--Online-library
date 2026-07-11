@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import {
   getBooks,
   saveBook,
@@ -20,13 +20,29 @@ import { Cupboard } from './components/Cupboard';
 import { DecorationDrawer } from './components/DecorationDrawer';
 import { Reader } from './components/Reader';
 import { AuthPage, type AuthUser } from './components/AuthPage';
-import { Library, LogOut } from 'lucide-react';
+import { Library, LogOut, Upload, X } from 'lucide-react';
+import * as pdfjs from 'pdfjs-dist';
+
+// Configure the pdfjs worker in Vite
+pdfjs.GlobalWorkerOptions.workerSrc = new URL(
+  'pdfjs-dist/build/pdf.worker.mjs',
+  import.meta.url
+).toString();
 
 
 
 function App() {
   // ── Auth State ──
   const [authUser, setAuthUser] = useState<AuthUser | null>(null);
+
+  // Profile Customization States
+  const [profilePic, setProfilePic] = useState('🐻');
+  const [showProfileMenu, setShowProfileMenu] = useState(false);
+  const profileUploadInputRef = useRef<HTMLInputElement>(null);
+
+  // PDF Upload States (visible on main page)
+  const [isUploading, setIsUploading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [isLoading, setIsLoading] = useState(true);
   
@@ -44,6 +60,34 @@ function App() {
   const [activeBookId, setActiveBookId] = useState<string | null>(null);
   const [activeHighlights, setActiveHighlights] = useState<Highlight[]>([]);
   const [activeStickers, setActiveStickers] = useState<PageSticker[]>([]);
+
+  // Load profile picture when user changes
+  useEffect(() => {
+    if (authUser) {
+      setProfilePic(localStorage.getItem(`profile_pic_${authUser.email}`) || '🐻');
+    }
+  }, [authUser]);
+
+  const handleSelectEmoji = (emoji: string) => {
+    setProfilePic(emoji);
+    if (authUser) {
+      localStorage.setItem(`profile_pic_${authUser.email}`, emoji);
+    }
+  };
+
+  const handleProfileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      const base64data = reader.result as string;
+      setProfilePic(base64data);
+      if (authUser) {
+        localStorage.setItem(`profile_pic_${authUser.email}`, base64data);
+      }
+    };
+    reader.readAsDataURL(file);
+  };
 
   // 1. Initial Load from IndexedDB
   useEffect(() => {
@@ -79,6 +123,67 @@ function App() {
   };
 
   // 3. Books Handlers
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (file.type !== 'application/pdf') {
+      alert('Oh dear! Please upload a PDF file.');
+      return;
+    }
+
+    setIsUploading(true);
+    try {
+      const arrayBuffer = await file.arrayBuffer();
+      const loadingTask = pdfjs.getDocument({ data: arrayBuffer.slice(0) });
+      const pdf = await loadingTask.promise;
+      const totalPages = pdf.numPages;
+
+      const cleanTitle = file.name.replace(/\.pdf$/i, '');
+      await handleAddBook(cleanTitle, arrayBuffer, totalPages);
+      
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
+    } catch (err) {
+      console.error(err);
+      alert('Apologies, there was an error reading your PDF.');
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+  };
+
+  const handleDrop = async (e: React.DragEvent) => {
+    e.preventDefault();
+    const file = e.dataTransfer.files?.[0];
+    if (!file) return;
+
+    if (file.type !== 'application/pdf') {
+      alert('Oh dear! Please upload a PDF file.');
+      return;
+    }
+
+    setIsUploading(true);
+    try {
+      const arrayBuffer = await file.arrayBuffer();
+      const loadingTask = pdfjs.getDocument({ data: arrayBuffer.slice(0) });
+      const pdf = await loadingTask.promise;
+      const totalPages = pdf.numPages;
+
+      const cleanTitle = file.name.replace(/\.pdf$/i, '');
+      await handleAddBook(cleanTitle, arrayBuffer, totalPages);
+    } catch (err) {
+      console.error(err);
+      alert('Apologies, there was an error reading your PDF.');
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
   const handleAddBook = async (title: string, fileData: ArrayBuffer, totalPages: number) => {
     const newBook: Book = {
       id: crypto.randomUUID ? crypto.randomUUID() : (Date.now().toString() + Math.random().toString()),
@@ -258,6 +363,31 @@ function App() {
     }
   };
 
+  const getThemeTextClass = () => {
+    switch (settings.cupboardTheme) {
+      case 'cottagecore':
+        return {
+          title: 'text-[#5c2e16]',
+          subtitle: 'text-[#8b5a2b]/80',
+        };
+      case 'pastel':
+        return {
+          title: 'text-[#a27b8c]',
+          subtitle: 'text-[#c6a4b4]/80',
+        };
+      case 'academic':
+        return {
+          title: 'text-[#ebdcb9]',
+          subtitle: 'text-[#a48e71]/80',
+        };
+      case 'scandinavian':
+        return {
+          title: 'text-[#57534e]',
+          subtitle: 'text-[#a8a29e]/80',
+        };
+    }
+  };
+
   if (isLoading) {
     return (
       <div className="min-h-screen w-full bg-[#FDF6F0] flex flex-col items-center justify-center gap-3 font-quicksand text-[#6b6375]">
@@ -275,6 +405,8 @@ function App() {
     return <AuthPage onAuthSuccess={(user) => setAuthUser(user)} />;
   }
 
+  const themeText = getThemeTextClass();
+
   return (
     <div className={`min-h-screen w-full transition-colors duration-500 flex flex-col items-center overflow-x-hidden ${getBgClass()}`}>
       
@@ -290,23 +422,100 @@ function App() {
             <svg viewBox="0 0 100 60" width="90" height="55" fill="#FFF"><path d="M20 35 C15 35, 10 32, 10 27 C10 22, 15 20, 20 20 C22 15, 35 10, 42 16 C48 12, 62 15, 65 22 C72 20, 80 25, 80 32 C80 37, 72 40, 65 40 L20 40 Z" /></svg>
           </div>
 
-          {/* Title Logo + User Info + Logout */}
-          <div className="flex items-center gap-3 mb-1 z-10">
-            <div className="flex items-center gap-2 bg-white/45 px-4 py-1.5 rounded-full border border-white/20 shadow-sm backdrop-blur-sm select-none animate-float">
-              <Library className="w-4 h-4 text-rose-300" />
-              <span className="text-[10px] font-bold tracking-widest text-[#8c7a6b] uppercase">Cozy Library ✧</span>
-            </div>
-            <div className="flex items-center gap-2 bg-white/45 px-3 py-1.5 rounded-full border border-white/20 shadow-sm backdrop-blur-sm">
-              <span className="text-[10px] font-semibold text-[#8c7a6b]">{authUser.name}</span>
+          {/* Top Right: Profile & Logout */}
+          <div className="fixed top-6 right-6 z-40 flex items-center gap-3">
+            {/* Logout button */}
+            <button
+              id="logout-btn"
+              title="Log out"
+              onClick={() => setAuthUser(null)}
+              className="p-2.5 rounded-full shadow-md bg-white/60 hover:bg-white/80 hover:text-rose-500 border border-white/20 backdrop-blur-sm transition-all text-[#6b6375] cursor-pointer"
+            >
+              <LogOut size={16} />
+            </button>
+
+            {/* Profile Avatar Button */}
+            <div className="relative">
               <button
-                id="logout-btn"
-                title="Log out"
-                onClick={() => setAuthUser(null)}
-                className="text-[#c4b5a8] hover:text-rose-400 transition-colors"
+                onClick={() => setShowProfileMenu(!showProfileMenu)}
+                className="w-12 h-12 rounded-full overflow-hidden border-2 border-rose-300 shadow-md bg-white hover:scale-105 transition-all cursor-pointer flex items-center justify-center text-2xl select-none"
               >
-                <LogOut size={12} />
+                {profilePic ? (
+                  profilePic.startsWith('data:') ? (
+                    <img src={profilePic} alt="Profile" className="w-full h-full object-cover" />
+                  ) : (
+                    <span>{profilePic}</span>
+                  )
+                ) : (
+                  <span>🐻</span>
+                )}
               </button>
+
+              {/* Profile dropdown menu */}
+              {showProfileMenu && (
+                <div className="absolute right-0 mt-3 w-64 rounded-2xl shadow-xl border border-white/20 backdrop-blur-md p-4 bg-white/90 z-50 flex flex-col gap-3.5 font-quicksand">
+                  <div className="flex justify-between items-center border-b border-black/5 pb-2">
+                    <span className="text-xs font-bold text-[#6b6375]">Customize Profile</span>
+                    <button onClick={() => setShowProfileMenu(false)} className="text-[#a29ca8] hover:text-[#6b6375]">
+                      <X size={14} />
+                    </button>
+                  </div>
+
+                  {/* Preset Avatars */}
+                  <div>
+                    <span className="text-[10px] font-bold text-[#8c7a6b] uppercase tracking-wider block mb-2">Preset Avatars</span>
+                    <div className="grid grid-cols-4 gap-2">
+                      {['🐻', '🐱', '🦊', '🐨', '🐼', '🐰', '🐸', '🦄', '🦁', '🦉', '🐷', '🐧'].map((emoji) => (
+                        <button
+                          key={emoji}
+                          onClick={() => {
+                            handleSelectEmoji(emoji);
+                            setShowProfileMenu(false);
+                          }}
+                          className="w-10 h-10 rounded-xl bg-white hover:bg-rose-50 border border-black/5 hover:border-rose-200 transition-all flex items-center justify-center text-xl cursor-pointer"
+                        >
+                          {emoji}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Custom Photo Upload */}
+                  <div className="border-t border-black/5 pt-3 flex flex-col gap-2">
+                    <span className="text-[10px] font-bold text-[#8c7a6b] uppercase tracking-wider block">Custom Photo</span>
+                    <button
+                      onClick={() => {
+                        profileUploadInputRef.current?.click();
+                      }}
+                      className="w-full py-2 border border-dashed border-[#d1c9e9] hover:border-[#aba0d3] bg-[#fdf6f0]/40 rounded-xl text-xs font-bold text-[#6b6375] flex items-center justify-center gap-1.5 transition-all cursor-pointer"
+                    >
+                      <Upload size={13} />
+                      <span>Upload Image</span>
+                    </button>
+                    <input
+                      type="file"
+                      ref={profileUploadInputRef}
+                      onChange={(e) => {
+                        handleProfileUpload(e);
+                        setShowProfileMenu(false);
+                      }}
+                      accept="image/*"
+                      className="hidden"
+                    />
+                  </div>
+                </div>
+              )}
             </div>
+          </div>
+
+          {/* Header Title */}
+          <div className="text-center mb-6 z-10">
+            <h1 className={`text-4xl md:text-5xl font-playfair font-bold tracking-wide lowercase select-none transition-colors duration-500 ${themeText.title}`}>
+              your cozy space
+            </h1>
+            <p className={`text-xs font-semibold tracking-wider uppercase mt-1 font-quicksand transition-colors duration-500 ${themeText.subtitle}`}>
+              Cozy Library & DIY Reading Room
+            </p>
           </div>
 
           {/* DIY Studio Configuration Drawer Trigger */}
@@ -319,17 +528,71 @@ function App() {
             onChangeBg={handleChangeBg}
           />
 
-          {/* Bookshelf Cupboard component */}
-          <Cupboard
-            theme={settings.cupboardTheme}
-            books={books}
-            decorations={decorations}
-            onOpenBook={handleOpenBook}
-            onUpdateBookShelf={handleUpdateBookShelf}
-            onUpdateDecorationPosition={handleUpdateDecorationPosition}
-            onDeleteBook={handleDeleteBook}
-            onDeleteDecoration={handleDeleteDecoration}
-          />
+          {/* Cupboard and Upload layout */}
+          <div className="w-full max-w-6xl px-4 flex flex-col lg:flex-row items-center lg:items-start justify-center gap-8 z-10">
+            {/* Left Column: Cupboard */}
+            <div className="flex-1 flex flex-col items-center">
+              <Cupboard
+                theme={settings.cupboardTheme}
+                books={books}
+                decorations={decorations}
+                onOpenBook={handleOpenBook}
+                onUpdateBookShelf={handleUpdateBookShelf}
+                onUpdateDecorationPosition={handleUpdateDecorationPosition}
+                onDeleteBook={handleDeleteBook}
+                onDeleteDecoration={handleDeleteDecoration}
+              />
+            </div>
+
+            {/* Right Column: Book Uploader */}
+            <div className="w-full lg:w-72 flex flex-col gap-4 mt-8 lg:mt-16 font-quicksand">
+              <div className="glassmorphism p-5 rounded-3xl border border-white/20 shadow-md flex flex-col gap-4">
+                <div>
+                  <h3 className="font-bold text-[#6b6375] text-sm">Add Book to Shelf</h3>
+                  <p className="text-[11px] text-[#a29ca8] mt-0.5">Drag and drop any PDF book here</p>
+                </div>
+
+                {/* Dotted Upload Zone */}
+                <div
+                  onDragOver={handleDragOver}
+                  onDrop={handleDrop}
+                  onClick={() => fileInputRef.current?.click()}
+                  className={`border-2 border-dashed border-[#d1c9e9] hover:border-[#aba0d3] bg-[#fdf6f0]/40 rounded-2xl p-6 flex flex-col items-center justify-center gap-3 text-center cursor-pointer transition-all duration-300 ${
+                    isUploading ? 'opacity-55 pointer-events-none' : ''
+                  }`}
+                >
+                  <input
+                    type="file"
+                    ref={fileInputRef}
+                    onChange={handleFileChange}
+                    accept=".pdf"
+                    className="hidden"
+                  />
+
+                  {isUploading ? (
+                    <div className="flex flex-col items-center gap-2">
+                      <div className="w-6 h-6 rounded-full border-3 border-rose-300 border-t-transparent animate-spin"></div>
+                      <span className="text-[10px] text-[#a29ca8] font-medium">Analyzing pages...</span>
+                    </div>
+                  ) : (
+                    <>
+                      <div className="p-2.5 bg-rose-50 rounded-full text-rose-400">
+                        <Upload className="w-5 h-5" />
+                      </div>
+                      <div>
+                        <p className="text-xs font-bold text-[#6b6375]">Drag & Drop PDF</p>
+                        <p className="text-[10px] text-[#a29ca8] mt-0.5">or click to browse files</p>
+                      </div>
+                    </>
+                  )}
+                </div>
+
+                <p className="text-[10px] leading-relaxed text-[#a29ca8] text-center">
+                  Books are processed entirely in your browser and saved to your device.
+                </p>
+              </div>
+            </div>
+          </div>
         </div>
       ) : (
         /* 2. Cozy Cafe Full-Screen Reader view */

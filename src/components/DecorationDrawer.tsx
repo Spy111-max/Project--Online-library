@@ -1,6 +1,5 @@
-import React, { useState, useRef } from 'react';
-import { Upload, Sparkles, X, Plus } from 'lucide-react';
-import * as pdfjs from 'pdfjs-dist';
+import React, { useState } from 'react';
+import { Sparkles, X } from 'lucide-react';
 import {
   SucculentIcon,
   HangingIvyIcon,
@@ -14,14 +13,7 @@ import {
   CandleIcon,
 } from './AestheticAssets';
 
-// Configure the pdfjs worker in Vite
-pdfjs.GlobalWorkerOptions.workerSrc = new URL(
-  'pdfjs-dist/build/pdf.worker.mjs',
-  import.meta.url
-).toString();
-
 interface DecorationDrawerProps {
-  onAddBook: (title: string, fileData: ArrayBuffer, totalPages: number) => void;
   onAddDecoration: (subType: string, type: 'plant' | 'sticker' | 'trinket') => void;
   currentTheme: 'cottagecore' | 'pastel' | 'academic' | 'scandinavian';
   onChangeTheme: (theme: 'cottagecore' | 'pastel' | 'academic' | 'scandinavian') => void;
@@ -30,7 +22,6 @@ interface DecorationDrawerProps {
 }
 
 export const DecorationDrawer: React.FC<DecorationDrawerProps> = ({
-  onAddBook,
   onAddDecoration,
   currentTheme,
   onChangeTheme,
@@ -38,9 +29,7 @@ export const DecorationDrawer: React.FC<DecorationDrawerProps> = ({
   onChangeBg,
 }) => {
   const [isOpen, setIsOpen] = useState(false);
-  const [activeTab, setActiveTab] = useState<'books' | 'decorations' | 'style'>('books');
-  const [isUploading, setIsUploading] = useState(false);
-  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [activeTab, setActiveTab] = useState<'decorations' | 'style'>('decorations');
 
   // DIY items list
   const decorItems = {
@@ -62,71 +51,7 @@ export const DecorationDrawer: React.FC<DecorationDrawerProps> = ({
     ],
   };
 
-  // Handle PDF Upload
-  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
 
-    if (file.type !== 'application/pdf') {
-      alert('Oh dear! Please upload a PDF file.');
-      return;
-    }
-
-    setIsUploading(true);
-    try {
-      const arrayBuffer = await file.arrayBuffer();
-      // Use PDF.js to load the document and extract page count
-      // We slice(0) the buffer to send a copy to the worker, keeping the original intact for DB save.
-      const loadingTask = pdfjs.getDocument({ data: arrayBuffer.slice(0) });
-      const pdf = await loadingTask.promise;
-      const totalPages = pdf.numPages;
-
-      // Clean title from .pdf suffix
-      const cleanTitle = file.name.replace(/\.pdf$/i, '');
-      onAddBook(cleanTitle, arrayBuffer, totalPages);
-      
-      if (fileInputRef.current) {
-        fileInputRef.current.value = '';
-      }
-    } catch (err) {
-      console.error(err);
-      alert('Apologies, there was an error reading your PDF. Make sure it is not corrupted.');
-    } finally {
-      setIsUploading(false);
-    }
-  };
-
-  const handleDragOver = (e: React.DragEvent) => {
-    e.preventDefault();
-  };
-
-  const handleDrop = async (e: React.DragEvent) => {
-    e.preventDefault();
-    const file = e.dataTransfer.files?.[0];
-    if (!file) return;
-
-    if (file.type !== 'application/pdf') {
-      alert('Oh dear! Please upload a PDF file.');
-      return;
-    }
-
-    setIsUploading(true);
-    try {
-      const arrayBuffer = await file.arrayBuffer();
-      // We slice(0) the buffer to send a copy to the worker, keeping the original intact for DB save.
-      const loadingTask = pdfjs.getDocument({ data: arrayBuffer.slice(0) });
-      const pdf = await loadingTask.promise;
-      const totalPages = pdf.numPages;
-
-      const cleanTitle = file.name.replace(/\.pdf$/i, '');
-      onAddBook(cleanTitle, arrayBuffer, totalPages);
-    } catch (err) {
-      console.error(err);
-      alert('Apologies, there was an error reading your PDF.');
-    } finally {
-      setIsUploading(false);
-    }
-  };
 
   return (
     <>
@@ -162,16 +87,6 @@ export const DecorationDrawer: React.FC<DecorationDrawerProps> = ({
         {/* Tab Buttons */}
         <div className="flex border-b border-black/5 text-sm font-bold font-quicksand">
           <button
-            onClick={() => setActiveTab('books')}
-            className={`flex-1 py-3 text-center border-b-2 transition-all cursor-pointer ${
-              activeTab === 'books'
-                ? 'border-rose-300 text-rose-500'
-                : 'border-transparent text-[#6b6375] hover:text-rose-400'
-            }`}
-          >
-            Books
-          </button>
-          <button
             onClick={() => setActiveTab('decorations')}
             className={`flex-1 py-3 text-center border-b-2 transition-all cursor-pointer ${
               activeTab === 'decorations'
@@ -195,49 +110,6 @@ export const DecorationDrawer: React.FC<DecorationDrawerProps> = ({
 
         {/* Scrollable Tab Content */}
         <div className="flex-1 overflow-y-auto p-5 font-quicksand">
-          
-          {/* TAB 1: BOOK UPLOADER */}
-          {activeTab === 'books' && (
-            <div className="flex flex-col gap-4 animate-fade-in">
-              <h4 className="text-sm font-bold text-[#6b6375] mb-1">Add a PDF Book</h4>
-              <div
-                onDragOver={handleDragOver}
-                onDrop={handleDrop}
-                onClick={() => fileInputRef.current?.click()}
-                className={`border-2 border-dashed border-[#d1c9e9] hover:border-[#aba0d3] bg-[#fdf6f0]/60 rounded-2xl p-8 flex flex-col items-center justify-center gap-3 text-center cursor-pointer transition-all duration-300 ${
-                  isUploading ? 'opacity-55 pointer-events-none' : ''
-                }`}
-              >
-                <input
-                  type="file"
-                  ref={fileInputRef}
-                  onChange={handleFileChange}
-                  accept=".pdf"
-                  className="hidden"
-                />
-                
-                {isUploading ? (
-                  <div className="flex flex-col items-center gap-2">
-                    <div className="w-8 h-8 rounded-full border-4 border-rose-300 border-t-transparent animate-spin"></div>
-                    <span className="text-xs text-[#a29ca8] font-medium">Analyzing pages...</span>
-                  </div>
-                ) : (
-                  <>
-                    <div className="p-3 bg-rose-50 rounded-full text-rose-400">
-                      <Upload className="w-6 h-6" />
-                    </div>
-                    <div>
-                      <p className="text-sm font-bold text-[#6b6375]">Drag & Drop PDF</p>
-                      <p className="text-xs text-[#a29ca8] mt-1">or click to browse local files</p>
-                    </div>
-                  </>
-                )}
-              </div>
-              <p className="text-[11px] leading-relaxed text-[#a29ca8] text-center px-2">
-                Books are processed and stored locally in your browser. Large files may take a brief moment.
-              </p>
-            </div>
-          )}
 
           {/* TAB 2: DIY DECORATIONS */}
           {activeTab === 'decorations' && (
