@@ -510,8 +510,8 @@ function App() {
 
           {/* Header Title */}
           <div className="text-center mb-6 z-10">
-            <h1 className={`text-4xl md:text-5xl font-lora italic font-medium tracking-wide lowercase select-none transition-colors duration-500 ${themeText.title}`}>
-              your cozy space
+            <h1 className={`text-4xl md:text-5xl font-lora italic font-medium tracking-wide select-none transition-colors duration-500 ${themeText.title}`}>
+              Your Cozy Space
             </h1>
             <p className={`text-xs font-semibold tracking-wider uppercase mt-1 font-quicksand transition-colors duration-500 ${themeText.subtitle}`}>
               Cozy Library & DIY Reading Room
