@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import {
   getBooks,
   saveBook,
@@ -19,10 +19,15 @@ import type { Book, Decoration, Highlight, Settings, PageSticker } from './utils
 import { Cupboard } from './components/Cupboard';
 import { DecorationDrawer } from './components/DecorationDrawer';
 import { Reader } from './components/Reader';
-import { Library } from 'lucide-react';
+import { AuthPage, type AuthUser } from './components/AuthPage';
+import { Library, LogOut } from 'lucide-react';
+
 
 
 function App() {
+  // ── Auth State ──
+  const [authUser, setAuthUser] = useState<AuthUser | null>(null);
+
   const [isLoading, setIsLoading] = useState(true);
   
   // Library States
@@ -119,17 +124,19 @@ function App() {
     setBooks(updatedBooks);
   };
 
-  const handleUpdateBookProgress = async (bookId: string, currentPage: number) => {
-    const updatedBooks = books.map((b) => {
-      if (b.id === bookId) {
-        const updated = { ...b, currentPage };
-        saveBook(updated); // Sync async to IndexedDB
-        return updated;
-      }
-      return b;
+  const handleUpdateBookProgress = useCallback(async (bookId: string, currentPage: number) => {
+    setBooks((prev) => {
+      const updated = prev.map((b) => {
+        if (b.id === bookId) {
+          const u = { ...b, currentPage };
+          saveBook(u); // fire-and-forget async write
+          return u;
+        }
+        return b;
+      });
+      return updated;
     });
-    setBooks(updatedBooks);
-  };
+  }, []); // no deps — setBooks and saveBook are stable
 
   const handleDeleteBook = async (bookId: string) => {
     try {
@@ -263,6 +270,11 @@ function App() {
   // Find book details if reading
   const activeBook = books.find((b) => b.id === activeBookId);
 
+  // ── Auth Gate ──
+  if (!authUser) {
+    return <AuthPage onAuthSuccess={(user) => setAuthUser(user)} />;
+  }
+
   return (
     <div className={`min-h-screen w-full transition-colors duration-500 flex flex-col items-center overflow-x-hidden ${getBgClass()}`}>
       
@@ -278,10 +290,23 @@ function App() {
             <svg viewBox="0 0 100 60" width="90" height="55" fill="#FFF"><path d="M20 35 C15 35, 10 32, 10 27 C10 22, 15 20, 20 20 C22 15, 35 10, 42 16 C48 12, 62 15, 65 22 C72 20, 80 25, 80 32 C80 37, 72 40, 65 40 L20 40 Z" /></svg>
           </div>
 
-          {/* Title Logo Indicator */}
-          <div className="flex items-center gap-2 mb-1 bg-white/45 px-4 py-1.5 rounded-full border border-white/20 shadow-sm backdrop-blur-sm z-10 select-none animate-float">
-            <Library className="w-4 h-4 text-rose-300" />
-            <span className="text-[10px] font-bold tracking-widest text-[#8c7a6b] uppercase">Cozy Library ✧</span>
+          {/* Title Logo + User Info + Logout */}
+          <div className="flex items-center gap-3 mb-1 z-10">
+            <div className="flex items-center gap-2 bg-white/45 px-4 py-1.5 rounded-full border border-white/20 shadow-sm backdrop-blur-sm select-none animate-float">
+              <Library className="w-4 h-4 text-rose-300" />
+              <span className="text-[10px] font-bold tracking-widest text-[#8c7a6b] uppercase">Cozy Library ✧</span>
+            </div>
+            <div className="flex items-center gap-2 bg-white/45 px-3 py-1.5 rounded-full border border-white/20 shadow-sm backdrop-blur-sm">
+              <span className="text-[10px] font-semibold text-[#8c7a6b]">{authUser.name}</span>
+              <button
+                id="logout-btn"
+                title="Log out"
+                onClick={() => setAuthUser(null)}
+                className="text-[#c4b5a8] hover:text-rose-400 transition-colors"
+              >
+                <LogOut size={12} />
+              </button>
+            </div>
           </div>
 
           {/* DIY Studio Configuration Drawer Trigger */}

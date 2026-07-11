@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import * as pdfjs from 'pdfjs-dist';
 import type { Book, Highlight, PageSticker } from '../utils/db';
 import { HighlightsSidebar } from './HighlightsSidebar';
@@ -595,12 +595,23 @@ export const Reader: React.FC<ReaderProps> = ({
     setAudioVolumes(CozyAudio.getVolumes());
   };
 
-  // Load PDF Document
+  const bookId = book.id;
+
+  // ── Stabilize fileData reference ──────────────────────────────────────────
+  // book.fileData reference changes on every App re-render triggered by
+  // progress updates (setBooks creates a new array → new book object).
+  // Holding it in a ref prevents the PDF load effect from re-firing.
+  const fileDataRef = useRef<ArrayBuffer>(book.fileData);
+  useEffect(() => {
+    fileDataRef.current = book.fileData;
+  }, [book.fileData]);
+
+  // Load PDF Document — depends only on bookId (stable)
   useEffect(() => {
     let active = true;
     const loadPdf = async () => {
       try {
-        const loadingTask = pdfjs.getDocument({ data: book.fileData.slice(0) });
+        const loadingTask = pdfjs.getDocument({ data: fileDataRef.current.slice(0) });
         const pdf = await loadingTask.promise;
         if (active) {
           setPdfDoc(pdf);
@@ -614,12 +625,29 @@ export const Reader: React.FC<ReaderProps> = ({
     return () => {
       active = false;
     };
-  }, [book]);
+  }, [bookId]); // ← only re-run when a DIFFERENT book is opened
 
-  // Update Reading Progress & Trigger Confetti celebration
+  // ── Debounced progress update ──────────────────────────────────────────────
+  // onUpdateProgress triggers setBooks in App, which re-renders Reader with a
+  // new `book` object. Debouncing to 800ms stops the cascade of re-renders
+  // from rapid page turns while still persisting progress reliably.
+  const progressTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const stableOnUpdateProgress = useCallback(onUpdateProgress, [onUpdateProgress]);
+
   useEffect(() => {
-    onUpdateProgress(book.id, pageNumber);
+    if (progressTimerRef.current) clearTimeout(progressTimerRef.current);
+    progressTimerRef.current = setTimeout(() => {
+      stableOnUpdateProgress(book.id, pageNumber);
+    }, 800);
 
+    return () => {
+      if (progressTimerRef.current) clearTimeout(progressTimerRef.current);
+    };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pageNumber]); // deliberately omit stableOnUpdateProgress to avoid re-triggering
+
+  // Confetti on last page
+  useEffect(() => {
     if (pdfDoc && pageNumber === pdfDoc.numPages && pdfDoc.numPages > 1) {
       confetti({
         particleCount: 100,
@@ -870,7 +898,10 @@ export const Reader: React.FC<ReaderProps> = ({
     }
   };
 
-  const colors = getThemeColors();
+  // ── Memoize theme colors ────────────────────────────────────────────────────
+  // getThemeColors() returned a new object every render, causing all ReaderPage
+  // children to re-render even when theme/roomBg hadn't changed.
+  const colors = useMemo(() => getThemeColors(), [themeMode, roomBg]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Navigation pages triggers
   const handlePrevPage = () => {
