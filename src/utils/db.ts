@@ -1,5 +1,5 @@
 const DB_NAME = 'CozyLibraryDB';
-const DB_VERSION = 2;
+const DB_VERSION = 4;
 
 export interface Book {
   id: string;
