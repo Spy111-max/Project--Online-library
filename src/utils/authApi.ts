@@ -5,7 +5,7 @@
  * Throws Error with machine-readable `code` for UI error mapping.
  */
 
-const API_BASE = 'http://localhost:3001/api/auth';
+const API_BASE = (import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001') + '/api/auth';
 
 // ─────────────────────────────────────────────────────────────
 // Types
